@@ -306,43 +306,44 @@ function findOrderBlocks(candles, swings, structEvents) {
   // of whether a live structure event was captured this call.
   // This is the primary OB source in normal usage.
   // Uses correct LuxAlgo candle selection: min parsedLow / max parsedHigh.
-  // MAX_FALLBACK_AGE: skip pivots older than 100 bars — their OBs are
-  // almost certainly already mitigated on higher timeframes.
-  const MAX_FALLBACK_AGE = 100;
   for (const sl of lows.slice(-4)) {
     const idx = sl.idx;
     if (idx < 3) continue;
-    if (n - 1 - idx > MAX_FALLBACK_AGE) continue;  // FIX: skip stale pivots
     // Window: up to 15 bars before the swing low (impulse leg)
     const winStart = Math.max(0, idx - 15);
     let minPL = Infinity, obIdx = -1;
     for (let i = winStart; i < idx; i++) {
       if (parsedLow[i] < minPL) { minPL = parsedLow[i]; obIdx = i; }
     }
+    // swingExtIdx stored so mitigation only fires AFTER the swing extreme
     if (obIdx >= 0)
-      obs.push({ type:'bull', high: candles[obIdx].high, low: candles[obIdx].low, idx: obIdx, mitigated: false });
+      obs.push({ type:'bull', high: candles[obIdx].high, low: candles[obIdx].low, idx: obIdx, swingExtIdx: idx, mitigated: false });
   }
   for (const sh of highs.slice(-4)) {
     const idx = sh.idx;
     if (idx < 3) continue;
-    if (n - 1 - idx > MAX_FALLBACK_AGE) continue;  // FIX: skip stale pivots
     const winStart = Math.max(0, idx - 15);
     let maxPH = -Infinity, obIdx = -1;
     for (let i = winStart; i < idx; i++) {
       if (parsedHigh[i] > maxPH) { maxPH = parsedHigh[i]; obIdx = i; }
     }
     if (obIdx >= 0)
-      obs.push({ type:'bear', high: candles[obIdx].high, low: candles[obIdx].low, idx: obIdx, mitigated: false });
+      obs.push({ type:'bear', high: candles[obIdx].high, low: candles[obIdx].low, idx: obIdx, swingExtIdx: idx, mitigated: false });
   }
 
-  // ── FIX 5: MITIGATION — mark OBs that price has since traded through ──
-  // Bull OB mitigated: any candle AFTER the OB has low < ob.low
-  //   (price re-entered the block from above — block is consumed)
-  // Bear OB mitigated: any candle AFTER the OB has high > ob.high
-  //   (price re-entered the block from below — block is consumed)
-  // Matches LuxAlgo HIGHLOW mitigation mode (default setting).
+  // ── FIX OB-MITIGATION (revised FIX 5) ────────────────────────────────────────
+  // ROOT CAUSE of "NONE DETECTED": proximity-fallback OBs were scanned from
+  // ob.idx+1, which lands inside the impulse leg BEFORE the swing extreme.
+  // Those candles naturally go lower (bull) / higher (bear) than the OB candle,
+  // so every fallback OB was immediately flagged mitigated and filtered out.
+  //
+  // Correct behaviour (matches LuxAlgo): mitigation only counts AFTER price has
+  // moved away from the OB zone (i.e. after the swing extreme that defined the OB).
+  // For proximity-fallback OBs:  scan starts at swingExtIdx + 1.
+  // For structEvent-sourced OBs: swingExtIdx not set → keep old ob.idx + 1 scan.
   for (const ob of obs) {
-    for (let i = ob.idx + 1; i < n; i++) {
+    const scanFrom = (typeof ob.swingExtIdx === 'number') ? ob.swingExtIdx + 1 : ob.idx + 1;
+    for (let i = scanFrom; i < n; i++) {
       if (ob.type === 'bull' && candles[i].low  < ob.low)  { ob.mitigated = true; break; }
       if (ob.type === 'bear' && candles[i].high > ob.high) { ob.mitigated = true; break; }
     }
