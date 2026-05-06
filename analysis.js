@@ -451,38 +451,34 @@ function generateTradeIdeas(candles, stData, swings, fvgs, srLevels, rsi, er, tq
   const shortRisk  = shortSL - shortEntry;
   const shortRR    = shortRisk > 0 ? ((shortEntry - shortTP2) / shortRisk).toFixed(2) : 'N/A';
 
-  // ── FIX STALE-B: watermark-based staleness check ─────────────
-  // A trade that went "in-trade" but then substantially reversed
-  // without hitting TP2 must be marked stale so we don't show a
-  // 5-month-old "TRADE RUNNING" banner indefinitely.
+  // ── FIX STALE-B (v2): watermark scoped to post-swing-pivot window ──────────
+  // BUG in v1: _highestClose / _lowestClose used the FULL 200-bar candle array.
+  // On BTC 1D this included the Jan ATH (~109k). Because 109k >= longTP2 - 3×ATR
+  // was always true, _longNearTP2 fired permanently — staling every long setup
+  // even when price never came close to the current TP2.
   //
-  // For SHORT in-trade:
-  //   We proxy the lowest price reached since entry using the
-  //   lowest close in the full candle array (200 bars).  If:
-  //     • price got within 3×ATR of TP2 (nearly hit target), AND
-  //     • price has since recovered more than 10×ATR back upward,
-  //   → the setup is expired. The trade played out and reversed.
-  //
-  // For LONG in-trade:
-  //   Mirror logic: highest close reached, TP2 nearness, and a
-  //   pullback of more than 10×ATR below that high.
-  //
-  // 10×ATR is intentionally large — we only want to catch the
-  // "5 months of recovery" case, not normal in-trade pullbacks.
+  // FIX: scope the window from the most recent 50-bar swing pivot that the current
+  // setup was built on (its .idx in the candle array) forward to the present bar.
+  // That way "highest close seen" only reflects price action AFTER this setup formed,
+  // not historical extremes from previous market cycles.
+  const _swingLowIdx  = _gtiSwings50.lows.length  > 0 ? _gtiSwings50.lows[_gtiSwings50.lows.length-1].idx  : 0;
+  const _swingHighIdx = _gtiSwings50.highs.length > 0 ? _gtiSwings50.highs[_gtiSwings50.highs.length-1].idx : 0;
 
-  const _allCloses    = candles.map(cc => cc.close);
-  const _lowestClose  = Math.min(..._allCloses);
-  const _highestClose = Math.max(..._allCloses);
+  const _longWindowCloses  = candles.slice(_swingLowIdx).map(cc => cc.close);
+  const _shortWindowCloses = candles.slice(_swingHighIdx).map(cc => cc.close);
+
+  const _highestClose = _longWindowCloses.length  > 0 ? Math.max(..._longWindowCloses)  : currentPrice;
+  const _lowestClose  = _shortWindowCloses.length > 0 ? Math.min(..._shortWindowCloses) : currentPrice;
 
   // SHORT watermark staleness
-  const _shortNearTP2    = _lowestClose <= shortTP2 + atr * 3;
-  const _shortRecovered  = currentPrice >= _lowestClose + atr * 10;
+  const _shortNearTP2        = _lowestClose <= shortTP2 + atr * 3;
+  const _shortRecovered      = currentPrice >= _lowestClose + atr * 10;
   const _shortWatermarkStale = _shortNearTP2 && _shortRecovered;
 
   // LONG watermark staleness
-  const _longNearTP2   = _highestClose >= longTP2 - atr * 3;
-  const _longPulledBack = currentPrice <= _highestClose - atr * 10;
-  const _longWatermarkStale = _longNearTP2 && _longPulledBack;
+  const _longNearTP2         = _highestClose >= longTP2 - atr * 3;
+  const _longPulledBack      = currentPrice  <= _highestClose - atr * 10;
+  const _longWatermarkStale  = _longNearTP2 && _longPulledBack;
 
   // Validity
   const longValid =
