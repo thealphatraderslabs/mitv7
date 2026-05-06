@@ -228,12 +228,7 @@ function renderChart(candles, stData, fvgs, swings, srLevels) {
 //   Mitigated OBs get { mitigated: true } and are filtered from renderOrderBlocks.
 // ═══════════════════════════════════════════════════════════════
 
-// FIX OB-A: accept an optional denseSwings parameter.
-// swings      = 50-bar swing layer  → used for primary BOS-driven OB path
-// denseSwings = 5-bar swing layer   → used ONLY in the fallback when no
-//               structEvents exist, because 50-bar pivots are too sparse on
-//               higher timeframes (weekly/daily) to find nearby OBs.
-function findOrderBlocks(candles, swings, structEvents, denseSwings) {
+function findOrderBlocks(candles, swings, structEvents) {
   const n    = candles.length;
   const obs  = [];
 
@@ -251,11 +246,7 @@ function findOrderBlocks(candles, swings, structEvents, denseSwings) {
   const parsedLow  = candles.map(c =>
     (c.high - c.low) >= 2 * atr200 ? c.high : c.low);
 
-  // Primary path uses the coarse swing layer (50-bar) pivots.
-  // Fallback path uses the dense layer (5-bar) when supplied.
   const { highs, lows } = swings;
-  const denseHighs = (denseSwings && denseSwings.highs) || highs;
-  const denseLows  = (denseSwings && denseSwings.lows)  || lows;
 
   // ── Gather BOS bar indices from structEvents ──────────────────
   // structEvents carry bosBarIdx (added in math.js Fix 2).
@@ -327,15 +318,16 @@ function findOrderBlocks(candles, swings, structEvents, denseSwings) {
     });
   }
 
-  // ── Fallback: if no structEvents produced OBs, use swing-proximity ─
-  // Uses the dense (5-bar) swing layer so there are always enough pivots
-  // even on higher timeframes (1D/1W) where 50-bar swings are too sparse.
-  // Window widened to 20 bars (was 10) so weekly-candle OBs are reachable.
-  if (obs.length === 0) {
-    for (const sl of denseLows.slice(-4)) {
+  // ── Fallback: if no structEvents passed, use swing-proximity ─
+  // Preserves original behaviour when called from scanners that
+  // don't supply structEvents yet (scanner.js, mitscan.js, btcscan.js).
+  // Uses the OLD window but with the corrected parsedLow/parsedHigh
+  // candle selection (fixes problem B from the audit even in fallback).
+  if ((!structEvents || structEvents.length === 0) && obs.length === 0) {
+    for (const sl of lows.slice(-3)) {
       const idx = sl.idx;
       if (idx < 3) continue;
-      const winStart = Math.max(0, idx - 20);
+      const winStart = Math.max(0, idx - 10);
       let minPL = Infinity, obIdx = -1;
       for (let i = winStart; i < idx; i++) {
         if (parsedLow[i] < minPL) { minPL = parsedLow[i]; obIdx = i; }
@@ -343,10 +335,10 @@ function findOrderBlocks(candles, swings, structEvents, denseSwings) {
       if (obIdx >= 0)
         obs.push({ type:'bull', high: candles[obIdx].high, low: candles[obIdx].low, idx: obIdx, mitigated: false });
     }
-    for (const sh of denseHighs.slice(-4)) {
+    for (const sh of highs.slice(-3)) {
       const idx = sh.idx;
       if (idx < 3) continue;
-      const winStart = Math.max(0, idx - 20);
+      const winStart = Math.max(0, idx - 10);
       let maxPH = -Infinity, obIdx = -1;
       for (let i = winStart; i < idx; i++) {
         if (parsedHigh[i] > maxPH) { maxPH = parsedHigh[i]; obIdx = i; }
@@ -452,14 +444,10 @@ function detectLiquidity(candles, highs, lows) {
   }
   const sweepDetected = sweeps.length > 0;
 
-  // FIX 9 DL-A: use swing-layer struct (50-bar) for the validSetup check so that
-  // sweepDetected is confirmed against major BOS/CHoCH, not noisy 5-bar internal swings.
-  // The highs/lows passed in are the 5-bar layer (equal-high/low detection still needs
-  // dense pivots), so we build the 50-bar layer here internally.
-  const _dlSwings50 = findSwings(candles, 50);
-  const _dlStruct50 = detectStructure(candles, _dlSwings50.highs, _dlSwings50.lows);
-  const _dlStruct5  = detectStructure(candles, highs, lows);
-  const struct = _dlStruct50.events.length > 0 ? _dlStruct50 : _dlStruct5;
+  // FIX 9: swing-level struct (50-bar) for validSetup — liquidity sweeps should
+  // confirm against major structure breaks, not internal 5-bar micro-breaks
+  const swingSwingsLiq = findSwings(candles, 50);
+  const struct = detectStructure(candles, swingSwingsLiq.highs, swingSwingsLiq.lows);
   const validSetup = sweepDetected && (
     struct.recentBOS_up || struct.recentBOS_down ||
     struct.recentCHOCH_up || struct.recentCHOCH_down
