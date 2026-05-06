@@ -184,8 +184,22 @@ function updateStructure(candles, stData, swings, fvgs, tf) {
   document.getElementById('s-trend-sub').textContent='ST LINE: '+fmtPrice(stLine);
 
   const { highs, lows } = swings;
-  const lastSH = highs.length>0 ? highs[highs.length-1] : null;
-  const lastSL = lows.length>0  ? lows[lows.length-1]   : null;
+  // FIX 9 US (COMPLETE): build the 50-bar swing layer first so ALL display fields
+  // (LAST SWING HIGH, LAST SWING LOW, PREMIUM ZONE, DISCOUNT ZONE, BOS/CHoCH) use
+  // major-structure pivots.  The 5-bar layer is kept for internal struct fallback only.
+  const internalStruct = detectStructure(candles, highs, lows);
+  const swingSwings50  = findSwings(candles, 50);
+  const swingStruct    = detectStructure(candles, swingSwings50.highs, swingSwings50.lows);
+
+  // Swing-layer extremes — prefer 50-bar pivot; fall back to 5-bar only if no 50-bar pivot exists
+  const _sw50SH = swingSwings50.highs.length > 0 ? swingSwings50.highs[swingSwings50.highs.length-1] : null;
+  const _sw50SL = swingSwings50.lows.length  > 0 ? swingSwings50.lows[swingSwings50.lows.length-1]   : null;
+  const _5barSH = highs.length > 0 ? highs[highs.length-1] : null;
+  const _5barSL = lows.length  > 0 ? lows[lows.length-1]   : null;
+  const lastSH  = _sw50SH || _5barSH;   // pivot object with .price
+  const lastSL  = _sw50SL || _5barSL;
+
+  // LAST SWING HIGH / LOW labels now show major (50-bar) pivots
   if (lastSH) {
     document.getElementById('s-sh').textContent=fmtPrice(lastSH.price);
     document.getElementById('s-sh').style.color='var(--red)';
@@ -198,35 +212,23 @@ function updateStructure(candles, stData, swings, fvgs, tf) {
     const dist=((lastClose-lastSL.price)/lastClose*100).toFixed(2);
     document.getElementById('s-sl-sub').textContent='-'+dist+'% FROM PRICE';
   }
-  // FIX 9: run both structure layers for display
-  const internalStruct = detectStructure(candles, highs, lows);
-  const swingSwings50  = findSwings(candles, 50);
-  const swingStruct    = detectStructure(candles, swingSwings50.highs, swingSwings50.lows);
 
-  // Prefer swing struct event for display; fall back to internal
+  // BOS/CHoCH: prefer swing layer; fall back to internal
   const displayStruct = swingStruct.events.length > 0 ? swingStruct : internalStruct;
   const isSwingLevel  = swingStruct.events.length > 0;
-
   if (displayStruct.events.length > 0) {
     const ev = displayStruct.events[0];
     const sEl = document.getElementById('s-struct');
-    // FIX 9: tag label shows SWING or INT layer prefix so user knows which layer fired
     const layerPrefix = isSwingLevel ? '' : '<span style="font-size:7px;color:var(--muted);margin-right:3px">INT</span>';
     sEl.innerHTML = layerPrefix + `<span class="tag ${ev.dir==='bull'?'bos':'choch'}">${ev.label}</span>`;
     document.getElementById('s-struct-sub').textContent = 'LEVEL: ' + fmtPrice(ev.level);
   }
+
+  // PREMIUM / DISCOUNT ZONE: always use 50-bar extremes (unconditional — no event-count gate)
   if (lastSH && lastSL) {
-    // FIX 9 US-A: use swing-layer (50-bar) extremes for premium/discount zone display
-    // so the levels shown here are consistent with those used in generateTradeIdeas
-    // and the major-structure OB path — not the noisy 5-bar internal pivots.
-    const _swHigh = swingStruct.events.length > 0 && swingSwings50.highs.length > 0
-      ? swingSwings50.highs[swingSwings50.highs.length-1].price
-      : lastSH.price;
-    const _swLow  = swingStruct.events.length > 0 && swingSwings50.lows.length > 0
-      ? swingSwings50.lows[swingSwings50.lows.length-1].price
-      : lastSL.price;
-    const rng=_swHigh-_swLow;
-    const prem=_swHigh-rng*0.25, disc=_swLow+rng*0.25;
+    const rng  = lastSH.price - lastSL.price;
+    const prem = lastSH.price - rng * 0.25;
+    const disc = lastSL.price + rng * 0.25;
     document.getElementById('s-prem').textContent=fmtPrice(prem);
     document.getElementById('s-prem').style.color=lastClose>prem?'var(--gold)':'var(--sub)';
     document.getElementById('s-disc').textContent=fmtPrice(disc);
