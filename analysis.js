@@ -726,6 +726,20 @@ async function runAnalysis() {
       funding:  funding.status==='fulfilled'&&funding.value ? parseFloat(funding.value.fundingRate||0)*100 : 0,
     };
 
+    // ── OB STRUCT CAPTURE: must happen BEFORE updateStructure() ──
+    // detectStructure() uses a WeakMap with a crossed-flag per pivot.
+    // Once a pivot fires it is marked consumed and returns empty events
+    // on all subsequent calls for the same candle array.
+    // updateStructure() internally calls detectStructure() twice, which
+    // exhausts the events — so we capture swing-50 struct events HERE,
+    // before any other code can consume them.
+    const swingSwings50Pre = findSwings(c, 50);
+    const swingStruct50Pre = detectStructure(c, swingSwings50Pre.highs, swingSwings50Pre.lows);
+    const internalStructPre = detectStructure(c, swings.highs, swings.lows);
+    const obStructEvents = swingStruct50Pre.events.length > 0
+      ? swingStruct50Pre.events
+      : internalStructPre.events;
+
     renderChart(c, stData, fvgs, swings, srLevels);
     updatePriceHeader(ticker, ticker24h.value, c, stData, er, tqi, rsi);
     updateDerivatives(ticker24h.value, funding.value, oi.value, ls.value, lsTop.value, bybit.value, gecko.value);
@@ -763,12 +777,9 @@ async function runAnalysis() {
     }
     updateSRLevels(srLevels);
 
-    const struct         = detectStructure(c, swings.highs, swings.lows);
-    // FIX 9: swing-level swings for OB detection (major structure breaks drive OBs)
-    const swingSwings50  = findSwings(c, 50);
-    const swingStruct50  = detectStructure(c, swingSwings50.highs, swingSwings50.lows);
-    const obStruct       = swingStruct50.events.length > 0 ? swingStruct50 : struct;
-    const obs = findOrderBlocks(c, swingSwings50, obStruct.events);
+    // Use pre-captured swing-50 swings + struct events (captured before updateStructure
+    // consumed the WeakMap crossed-flags). This is the fix for "NONE DETECTED" OBs.
+    const obs = findOrderBlocks(c, swingSwings50Pre, obStructEvents);
     renderOrderBlocks(obs, currentPrice);
 
     if (bybit.value && ticker24h.value) {
