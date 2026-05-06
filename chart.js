@@ -250,10 +250,12 @@ function findOrderBlocks(candles, swings, structEvents) {
 
   // ── Gather BOS bar indices from structEvents ──────────────────
   // structEvents carry bosBarIdx (added in math.js Fix 2).
-  // We only create OBs when a real structure break occurred,
-  // keyed by direction so we know which swing to scan from.
-  const bullBOSBars = []; // bar indices where bullish BOS/CHoCH fired
-  const bearBOSBars = []; // bar indices where bearish BOS/CHoCH fired
+  // IMPORTANT: structEvents only fires ONCE per pivot (crossed flag).
+  // On subsequent calls the same candle array returns empty events.
+  // So we ALWAYS run the swing-proximity fallback to ensure OBs are
+  // detected from recent swing structure regardless of event history.
+  const bullBOSBars = [];
+  const bearBOSBars = [];
 
   if (structEvents && structEvents.length > 0) {
     for (const ev of structEvents) {
@@ -264,88 +266,68 @@ function findOrderBlocks(candles, swings, structEvents) {
     }
   }
 
-  // ── BULL OBs — scan from nearest swing low to BOS bar ────────
-  // For each bullish structure break, find the most recent swing
-  // low that preceded it, then scan that window for the OB candle.
+  // ── BULL OBs from structEvents ────────────────────────────────
   for (const { bosIdx, level } of bullBOSBars) {
-    // Find the swing low just before the BOS bar
     let pivotIdx = -1;
     for (let k = lows.length - 1; k >= 0; k--) {
       if (lows[k].idx < bosIdx) { pivotIdx = lows[k].idx; break; }
     }
-    if (pivotIdx < 0) continue; // no prior swing low found
-    if (bosIdx - pivotIdx < 1) continue; // window too small
-
-    // Scan window [pivotIdx .. bosIdx-1] — find candle with min parsedLow
+    if (pivotIdx < 0) continue;
+    if (bosIdx - pivotIdx < 1) continue;
     let minPL = Infinity, obIdx = -1;
     for (let i = pivotIdx; i < bosIdx; i++) {
       if (parsedLow[i] < minPL) { minPL = parsedLow[i]; obIdx = i; }
     }
     if (obIdx < 0) continue;
-
-    obs.push({
-      type:      'bull',
-      high:      candles[obIdx].high,
-      low:       candles[obIdx].low,
-      idx:       obIdx,
-      mitigated: false,
-    });
+    obs.push({ type:'bull', high: candles[obIdx].high, low: candles[obIdx].low, idx: obIdx, mitigated: false });
   }
 
-  // ── BEAR OBs — scan from nearest swing high to BOS bar ───────
+  // ── BEAR OBs from structEvents ────────────────────────────────
   for (const { bosIdx, level } of bearBOSBars) {
-    // Find the swing high just before the BOS bar
     let pivotIdx = -1;
     for (let k = highs.length - 1; k >= 0; k--) {
       if (highs[k].idx < bosIdx) { pivotIdx = highs[k].idx; break; }
     }
     if (pivotIdx < 0) continue;
     if (bosIdx - pivotIdx < 1) continue;
-
-    // Scan window [pivotIdx .. bosIdx-1] — find candle with max parsedHigh
     let maxPH = -Infinity, obIdx = -1;
     for (let i = pivotIdx; i < bosIdx; i++) {
       if (parsedHigh[i] > maxPH) { maxPH = parsedHigh[i]; obIdx = i; }
     }
     if (obIdx < 0) continue;
-
-    obs.push({
-      type:      'bear',
-      high:      candles[obIdx].high,
-      low:       candles[obIdx].low,
-      idx:       obIdx,
-      mitigated: false,
-    });
+    obs.push({ type:'bear', high: candles[obIdx].high, low: candles[obIdx].low, idx: obIdx, mitigated: false });
   }
 
-  // ── Fallback: if no structEvents passed, use swing-proximity ─
-  // Preserves original behaviour when called from scanners that
-  // don't supply structEvents yet (scanner.js, mitscan.js, btcscan.js).
-  // Uses the OLD window but with the corrected parsedLow/parsedHigh
-  // candle selection (fixes problem B from the audit even in fallback).
-  if ((!structEvents || structEvents.length === 0) && obs.length === 0) {
-    for (const sl of lows.slice(-3)) {
-      const idx = sl.idx;
-      if (idx < 3) continue;
-      const winStart = Math.max(0, idx - 10);
-      let minPL = Infinity, obIdx = -1;
-      for (let i = winStart; i < idx; i++) {
-        if (parsedLow[i] < minPL) { minPL = parsedLow[i]; obIdx = i; }
-      }
-      if (obIdx >= 0)
-        obs.push({ type:'bull', high: candles[obIdx].high, low: candles[obIdx].low, idx: obIdx, mitigated: false });
+  // ── SWING-PROXIMITY FALLBACK (always runs) ────────────────────
+  // structEvents only fire once due to crossed flag — on every
+  // subsequent call with the same candle array they are empty.
+  // We always scan recent swing highs/lows to derive OBs from
+  // the impulse move that created each swing extreme, regardless
+  // of whether a live structure event was captured this call.
+  // This is the primary OB source in normal usage.
+  // Uses correct LuxAlgo candle selection: min parsedLow / max parsedHigh.
+  for (const sl of lows.slice(-4)) {
+    const idx = sl.idx;
+    if (idx < 3) continue;
+    // Window: up to 15 bars before the swing low (impulse leg)
+    const winStart = Math.max(0, idx - 15);
+    let minPL = Infinity, obIdx = -1;
+    for (let i = winStart; i < idx; i++) {
+      if (parsedLow[i] < minPL) { minPL = parsedLow[i]; obIdx = i; }
     }
-    for (const sh of highs.slice(-3)) {
-      const idx = sh.idx;
-      if (idx < 3) continue;
-      const winStart = Math.max(0, idx - 10);
-      let maxPH = -Infinity, obIdx = -1;
-      for (let i = winStart; i < idx; i++) {
-        if (parsedHigh[i] > maxPH) { maxPH = parsedHigh[i]; obIdx = i; }
-      }
-      if (obIdx >= 0)
-        obs.push({ type:'bear', high: candles[obIdx].high, low: candles[obIdx].low, idx: obIdx, mitigated: false });
+    if (obIdx >= 0)
+      obs.push({ type:'bull', high: candles[obIdx].high, low: candles[obIdx].low, idx: obIdx, mitigated: false });
+  }
+  for (const sh of highs.slice(-4)) {
+    const idx = sh.idx;
+    if (idx < 3) continue;
+    const winStart = Math.max(0, idx - 15);
+    let maxPH = -Infinity, obIdx = -1;
+    for (let i = winStart; i < idx; i++) {
+      if (parsedHigh[i] > maxPH) { maxPH = parsedHigh[i]; obIdx = i; }
     }
+    if (obIdx >= 0)
+      obs.push({ type:'bear', high: candles[obIdx].high, low: candles[obIdx].low, idx: obIdx, mitigated: false });
   }
 
   // ── FIX 5: MITIGATION — mark OBs that price has since traded through ──
