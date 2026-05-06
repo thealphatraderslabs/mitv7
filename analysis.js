@@ -184,22 +184,8 @@ function updateStructure(candles, stData, swings, fvgs, tf) {
   document.getElementById('s-trend-sub').textContent='ST LINE: '+fmtPrice(stLine);
 
   const { highs, lows } = swings;
-  // FIX 9 US (COMPLETE): build the 50-bar swing layer first so ALL display fields
-  // (LAST SWING HIGH, LAST SWING LOW, PREMIUM ZONE, DISCOUNT ZONE, BOS/CHoCH) use
-  // major-structure pivots.  The 5-bar layer is kept for internal struct fallback only.
-  const internalStruct = detectStructure(candles, highs, lows);
-  const swingSwings50  = findSwings(candles, 50);
-  const swingStruct    = detectStructure(candles, swingSwings50.highs, swingSwings50.lows);
-
-  // Swing-layer extremes — prefer 50-bar pivot; fall back to 5-bar only if no 50-bar pivot exists
-  const _sw50SH = swingSwings50.highs.length > 0 ? swingSwings50.highs[swingSwings50.highs.length-1] : null;
-  const _sw50SL = swingSwings50.lows.length  > 0 ? swingSwings50.lows[swingSwings50.lows.length-1]   : null;
-  const _5barSH = highs.length > 0 ? highs[highs.length-1] : null;
-  const _5barSL = lows.length  > 0 ? lows[lows.length-1]   : null;
-  const lastSH  = _sw50SH || _5barSH;   // pivot object with .price
-  const lastSL  = _sw50SL || _5barSL;
-
-  // LAST SWING HIGH / LOW labels now show major (50-bar) pivots
+  const lastSH = highs.length>0 ? highs[highs.length-1] : null;
+  const lastSL = lows.length>0  ? lows[lows.length-1]   : null;
   if (lastSH) {
     document.getElementById('s-sh').textContent=fmtPrice(lastSH.price);
     document.getElementById('s-sh').style.color='var(--red)';
@@ -212,23 +198,26 @@ function updateStructure(candles, stData, swings, fvgs, tf) {
     const dist=((lastClose-lastSL.price)/lastClose*100).toFixed(2);
     document.getElementById('s-sl-sub').textContent='-'+dist+'% FROM PRICE';
   }
+  // FIX 9: run both structure layers for display
+  const internalStruct = detectStructure(candles, highs, lows);
+  const swingSwings50  = findSwings(candles, 50);
+  const swingStruct    = detectStructure(candles, swingSwings50.highs, swingSwings50.lows);
 
-  // BOS/CHoCH: prefer swing layer; fall back to internal
+  // Prefer swing struct event for display; fall back to internal
   const displayStruct = swingStruct.events.length > 0 ? swingStruct : internalStruct;
   const isSwingLevel  = swingStruct.events.length > 0;
+
   if (displayStruct.events.length > 0) {
     const ev = displayStruct.events[0];
     const sEl = document.getElementById('s-struct');
+    // FIX 9: tag label shows SWING or INT layer prefix so user knows which layer fired
     const layerPrefix = isSwingLevel ? '' : '<span style="font-size:7px;color:var(--muted);margin-right:3px">INT</span>';
     sEl.innerHTML = layerPrefix + `<span class="tag ${ev.dir==='bull'?'bos':'choch'}">${ev.label}</span>`;
     document.getElementById('s-struct-sub').textContent = 'LEVEL: ' + fmtPrice(ev.level);
   }
-
-  // PREMIUM / DISCOUNT ZONE: always use 50-bar extremes (unconditional — no event-count gate)
   if (lastSH && lastSL) {
-    const rng  = lastSH.price - lastSL.price;
-    const prem = lastSH.price - rng * 0.25;
-    const disc = lastSL.price + rng * 0.25;
+    const rng=lastSH.price-lastSL.price;
+    const prem=lastSH.price-rng*0.25, disc=lastSL.price+rng*0.25;
     document.getElementById('s-prem').textContent=fmtPrice(prem);
     document.getElementById('s-prem').style.color=lastClose>prem?'var(--gold)':'var(--sub)';
     document.getElementById('s-disc').textContent=fmtPrice(disc);
@@ -303,15 +292,14 @@ function generateTradeIdeas(candles, stData, swings, fvgs, srLevels, rsi, er, tq
   const lastTrend = stData.trend[n-1] || 1;
   const atrs = calcATR(candles, 14);
   const atr = atrs[atrs.length-1] || currentPrice * 0.015;
-  const { highs, lows } = swings;
-  // FIX 9 GTI-A: build the 50-bar swing layer so zone + struct use major pivots,
-  // matching the two-layer approach applied to buildContext / scanner / mitscan / btcscan.
-  const _gtiSwings50 = findSwings(candles, 50);
-  // Swing-layer extremes for premium/discount zone (prefer 50-bar; fall back to 5-bar)
-  const _swSH50 = _gtiSwings50.highs.length > 0 ? _gtiSwings50.highs[_gtiSwings50.highs.length-1].price : null;
-  const _swSL50 = _gtiSwings50.lows.length  > 0 ? _gtiSwings50.lows[_gtiSwings50.lows.length-1].price  : null;
-  const lastSH = (_swSH50 !== null ? _swSH50 : (highs.length>0 ? highs[highs.length-1].price : currentPrice*1.03));
-  const lastSL = (_swSL50 !== null ? _swSL50 : (lows.length>0  ? lows[lows.length-1].price   : currentPrice*0.97));
+  const { highs: intHighs, lows: intLows } = swings;
+  // FIX 9: use swing-layer (50-bar) extremes for zone + range calculations
+  // Internal 5-bar pivots produce noisy lastSH/lastSL → wrong premium/discount
+  const swingSwingsGTI = findSwings(candles, 50);
+  const swHighs = swingSwingsGTI.highs.length > 0 ? swingSwingsGTI.highs : intHighs;
+  const swLows  = swingSwingsGTI.lows.length  > 0 ? swingSwingsGTI.lows  : intLows;
+  const lastSH = swHighs[swHighs.length-1].price;
+  const lastSL = swLows[swLows.length-1].price;
   const effectiveSH = Math.max(lastSH, currentPrice);
   const effectiveSL = Math.min(lastSL, currentPrice);
   const rng    = effectiveSH-effectiveSL || currentPrice*0.05;
@@ -338,12 +326,14 @@ function generateTradeIdeas(candles, stData, swings, fvgs, srLevels, rsi, er, tq
   } else {
     bullSMC += 8; bearSMC += 8;
   }
-  // FIX 9 GTI-B: use swing-layer struct (50-bar) for BOS/CHoCH vote and DECISION checks.
-  // Fall back to 5-bar internal struct only when the 50-bar layer has no events
-  // (sparse higher-timeframe candle sets where 50-bar pivots don't materialise).
-  const _internalStruct50 = detectStructure(candles, _gtiSwings50.highs, _gtiSwings50.lows);
-  const _internalStruct5  = detectStructure(candles, highs, lows);
-  const struct = _internalStruct50.events.length > 0 ? _internalStruct50 : _internalStruct5;
+  // FIX 9: swing-level struct for BOS/CHoCH vote — major breaks drive bias
+  const swingStructGTI  = detectStructure(candles, swHighs, swLows);
+  const internalStructGTI = detectStructure(candles, intHighs, intLows);
+  const struct = swingStructGTI.events.length > 0 ? swingStructGTI : internalStructGTI;
+  // Swing range uses swing-layer extremes
+  const swingRange = lastSH - lastSL || currentPrice * 0.05;
+  const swingPos   = swingRange > 0 ? (currentPrice - lastSL) / swingRange : 0.5;
+
   if (struct.events.length>0) { if (struct.events[0].dir==='bull') bullSMC+=20; else bearSMC+=20; }
   if (rsi) { if (rsi<40) bullSMC+=10; else if (rsi>65) bearSMC+=10; else if (rsi<52) bullSMC+=5; else bearSMC+=5; }
   if (tqi>0.5&&lastTrend===1) bullSMC+=10; else if (tqi>0.5&&lastTrend===-1) bearSMC+=10;
@@ -354,9 +344,6 @@ function generateTradeIdeas(candles, stData, swings, fvgs, srLevels, rsi, er, tq
   const bullPct = Math.round(bullSMC/totalScore*100);
   const primaryDir = bullSMC>=bearSMC ? 'LONG' : 'SHORT';
   const tradesBias = primaryDir === 'LONG' ? 'bullish' : 'bearish';
-
-  const swingRange = lastSH - lastSL || currentPrice * 0.05;
-  const swingPos   = swingRange > 0 ? (currentPrice - lastSL) / swingRange : 0.5;
   const isBullTrade = tradesBias === 'bullish' || tradesBias === 'bullish_transition';
   const isBearTrade = tradesBias === 'bearish' || tradesBias === 'bearish_transition';
   const last5closes = candles.slice(-5).map(c => c.close);
@@ -451,42 +438,11 @@ function generateTradeIdeas(candles, stData, swings, fvgs, srLevels, rsi, er, tq
   const shortRisk  = shortSL - shortEntry;
   const shortRR    = shortRisk > 0 ? ((shortEntry - shortTP2) / shortRisk).toFixed(2) : 'N/A';
 
-  // ── FIX STALE-B (v2): watermark scoped to post-swing-pivot window ──────────
-  // BUG in v1: _highestClose / _lowestClose used the FULL 200-bar candle array.
-  // On BTC 1D this included the Jan ATH (~109k). Because 109k >= longTP2 - 3×ATR
-  // was always true, _longNearTP2 fired permanently — staling every long setup
-  // even when price never came close to the current TP2.
-  //
-  // FIX: scope the window from the most recent 50-bar swing pivot that the current
-  // setup was built on (its .idx in the candle array) forward to the present bar.
-  // That way "highest close seen" only reflects price action AFTER this setup formed,
-  // not historical extremes from previous market cycles.
-  const _swingLowIdx  = _gtiSwings50.lows.length  > 0 ? _gtiSwings50.lows[_gtiSwings50.lows.length-1].idx  : 0;
-  const _swingHighIdx = _gtiSwings50.highs.length > 0 ? _gtiSwings50.highs[_gtiSwings50.highs.length-1].idx : 0;
-
-  const _longWindowCloses  = candles.slice(_swingLowIdx).map(cc => cc.close);
-  const _shortWindowCloses = candles.slice(_swingHighIdx).map(cc => cc.close);
-
-  const _highestClose = _longWindowCloses.length  > 0 ? Math.max(..._longWindowCloses)  : currentPrice;
-  const _lowestClose  = _shortWindowCloses.length > 0 ? Math.min(..._shortWindowCloses) : currentPrice;
-
-  // SHORT watermark staleness
-  const _shortNearTP2        = _lowestClose <= shortTP2 + atr * 3;
-  const _shortRecovered      = currentPrice >= _lowestClose + atr * 10;
-  const _shortWatermarkStale = _shortNearTP2 && _shortRecovered;
-
-  // LONG watermark staleness
-  const _longNearTP2         = _highestClose >= longTP2 - atr * 3;
-  const _longPulledBack      = currentPrice  <= _highestClose - atr * 10;
-  const _longWatermarkStale  = _longNearTP2 && _longPulledBack;
-
   // Validity
   const longValid =
-    !_longWatermarkStale &&
     currentPrice > longSL   &&
     currentPrice < longTP2;
   const shortValid =
-    !_shortWatermarkStale &&
     currentPrice < shortSL  &&
     currentPrice > shortTP2 &&
     !(shortEntry > currentPrice && currentPrice < shortTP1);
@@ -533,23 +489,19 @@ function generateTradeIdeas(candles, stData, swings, fvgs, srLevels, rsi, er, tq
   const shortEntryDistPct = shortEntry > 0 ? ((_shortDist > 0 ? _shortDist : Math.abs(_shortDist)) / shortEntry * 100).toFixed(2) : '0.00';
 
   const longStaleReason =
-    _longWatermarkStale
-      ? `Setup expired — price reached within ${(atr*3).toFixed(0)} of TP2 (${fmtPrice(longTP2)}) then reversed ${((_highestClose - currentPrice) / atr).toFixed(1)}×ATR. Wait for a fresh swing.`
-      : currentPrice < longSL
-        ? `Price dropped below stop-loss (${fmtPrice(longSL)}) — long invalidated.`
-        : currentPrice >= longTP2
-          ? `TP2 (${fmtPrice(longTP2)}) already hit — full target reached. Wait for new swing.`
-          : 'Long scenario no longer actionable.';
+    currentPrice < longSL
+      ? `Price dropped below stop-loss (${fmtPrice(longSL)}) — long invalidated.`
+      : currentPrice >= longTP2
+        ? `TP2 (${fmtPrice(longTP2)}) already hit — full target reached. Wait for new swing.`
+        : 'Long scenario no longer actionable.';
   const shortStaleReason =
-    _shortWatermarkStale
-      ? `Setup expired — price reached within ${(atr*3).toFixed(0)} of TP2 (${fmtPrice(shortTP2)}) then recovered ${((currentPrice - _lowestClose) / atr).toFixed(1)}×ATR. Wait for a fresh swing.`
-      : currentPrice > shortSL
-        ? `Price rallied above stop-loss (${fmtPrice(shortSL)}) — short invalidated.`
-        : currentPrice <= shortTP2
-          ? `TP2 (${fmtPrice(shortTP2)}) already hit — full target reached. Wait for new swing.`
-          : (shortEntry > currentPrice && currentPrice < shortTP1)
-            ? `Price (${fmtPrice(currentPrice)}) already below TP1 (${fmtPrice(shortTP1)}) without entry triggering — short opportunity passed.`
-            : 'Short scenario no longer actionable.';
+    currentPrice > shortSL
+      ? `Price rallied above stop-loss (${fmtPrice(shortSL)}) — short invalidated.`
+      : currentPrice <= shortTP2
+        ? `TP2 (${fmtPrice(shortTP2)}) already hit — full target reached. Wait for new swing.`
+        : (shortEntry > currentPrice && currentPrice < shortTP1)
+          ? `Price (${fmtPrice(currentPrice)}) already below TP1 (${fmtPrice(shortTP1)}) without entry triggering — short opportunity passed.`
+          : 'Short scenario no longer actionable.';
 
   return {
     primaryDir, confPips, bullPct, weightedScore, confidenceLabel,
@@ -813,12 +765,10 @@ async function runAnalysis() {
 
     const struct         = detectStructure(c, swings.highs, swings.lows);
     // FIX 9: swing-level swings for OB detection (major structure breaks drive OBs)
-    // FIX OB-A: also pass dense 5-bar swings so the fallback has enough pivots
-    //   on higher timeframes (1D/1W) where 50-bar pivots are too sparse.
     const swingSwings50  = findSwings(c, 50);
     const swingStruct50  = detectStructure(c, swingSwings50.highs, swingSwings50.lows);
     const obStruct       = swingStruct50.events.length > 0 ? swingStruct50 : struct;
-    const obs = findOrderBlocks(c, swingSwings50, obStruct.events, swings);
+    const obs = findOrderBlocks(c, swingSwings50, obStruct.events);
     renderOrderBlocks(obs, currentPrice);
 
     if (bybit.value && ticker24h.value) {
