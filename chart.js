@@ -306,9 +306,13 @@ function findOrderBlocks(candles, swings, structEvents) {
   // of whether a live structure event was captured this call.
   // This is the primary OB source in normal usage.
   // Uses correct LuxAlgo candle selection: min parsedLow / max parsedHigh.
+  // MAX_FALLBACK_AGE: skip pivots older than 100 bars — their OBs are
+  // almost certainly already mitigated on higher timeframes.
+  const MAX_FALLBACK_AGE = 100;
   for (const sl of lows.slice(-4)) {
     const idx = sl.idx;
     if (idx < 3) continue;
+    if (n - 1 - idx > MAX_FALLBACK_AGE) continue;  // FIX: skip stale pivots
     // Window: up to 15 bars before the swing low (impulse leg)
     const winStart = Math.max(0, idx - 15);
     let minPL = Infinity, obIdx = -1;
@@ -321,6 +325,7 @@ function findOrderBlocks(candles, swings, structEvents) {
   for (const sh of highs.slice(-4)) {
     const idx = sh.idx;
     if (idx < 3) continue;
+    if (n - 1 - idx > MAX_FALLBACK_AGE) continue;  // FIX: skip stale pivots
     const winStart = Math.max(0, idx - 15);
     let maxPH = -Infinity, obIdx = -1;
     for (let i = winStart; i < idx; i++) {
