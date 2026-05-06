@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cryptex · Market Intelligence Terminal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="main.css">
+</head>
+<body>
+
+<!-- ══ HEADER ══ -->
+<header id="atl-header">
+  <div class="atl-logo">
+    <span class="accent">CRYPTEX</span><span class="dot">·</span>TERMINAL
+  </div>
+  <div class="header-divider"></div>
+  <span class="header-tag">MARKET INTELLIGENCE</span>
+  <div class="header-right">
+    <span id="atl-clock">00:00:00 UTC</span>
+    <div class="status-pill">
+      <div class="status-dot" id="global-status-dot"></div>
+      <span id="global-status-text">READY</span>
+    </div>
+  </div>
+</header>
+
+<!-- ══ VERTICAL ICON RAIL ══ -->
+<nav id="atl-rail">
+  <div class="rail-icon active" id="rail-analysis" title="Analysis">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+    </svg>
+  </div>
+  <div class="rail-divider"></div>
+  <div class="rail-icon" id="rail-refresh" title="Auto Refresh">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+    </svg>
+  </div>
+  <div class="rail-divider"></div>
+  <div class="rail-icon" id="rail-smc-scanner" title="SMC Confluence Scanner">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      <line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
+    </svg>
+  </div>
+  <div class="rail-divider"></div>
+  <div class="rail-icon" id="rail-mit-scan" title="MIT SCAN — Market Intelligence Scan">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+    </svg>
+  </div>
+  <div class="rail-divider"></div>
+  <div class="rail-icon" id="rail-btc-scan" title="BTC Pair Scanner">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <circle cx="12" cy="12" r="9"/>
+      <path d="M9 8h4.5a2 2 0 0 1 0 4H9v0h5a2 2 0 0 1 0 4H9"/>
+      <line x1="11" y1="6" x2="11" y2="8"/><line x1="13" y1="6" x2="13" y2="8"/>
+      <line x1="11" y1="16" x2="11" y2="18"/><line x1="13" y1="16" x2="13" y2="18"/>
+    </svg>
+  </div>
+  <div class="rail-divider"></div>
+  <div class="rail-icon" id="rail-help" title="Help &amp; Glossary">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+      <line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>
+  </div>
+</nav>
+
+<!-- ══ MOBILE BOTTOM RAIL (hidden on desktop) ══ -->
+<div id="mobile-bottom-rail" style="display:none">
+  <button class="mbr-btn active" id="mbr-analysis" title="Analysis">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+    </svg>
+    <span>Analysis</span>
+  </button>
+  <button class="mbr-btn" id="mbr-smc" title="SMC Scanner">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      <line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
+    </svg>
+    <span>SMC Scan</span>
+  </button>
+  <button class="mbr-btn" id="mbr-mit" title="MIT Scan">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+    </svg>
+    <span>MIT Scan</span>
+  </button>
+  <button class="mbr-btn" id="mbr-btc" title="BTC Scan">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <circle cx="12" cy="12" r="9"/>
+      <path d="M9 8h4.5a2 2 0 0 1 0 4H9v0h5a2 2 0 0 1 0 4H9"/>
+      <line x1="11" y1="6" x2="11" y2="8"/><line x1="13" y1="6" x2="13" y2="8"/>
+      <line x1="11" y1="16" x2="11" y2="18"/><line x1="13" y1="16" x2="13" y2="18"/>
+    </svg>
+    <span>BTC Scan</span>
+  </button>
+  <button class="mbr-btn" id="mbr-help" title="Help">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+      <line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>
+    <span>Help</span>
+  </button>
+</div>
+<div id="stage">
+
+  <!-- ─── ANALYSIS STAGE ─── -->
+  <div id="stage-analysis">
+
+    <!-- Analysis command bar -->
+    <div id="analysis-cmd">
+      <span class="cmd-label">TICKER</span>
+      <input id="tickerInput" type="text" placeholder="BTC" maxlength="12" autocomplete="off" spellcheck="false">
+      <span class="cmd-label">TF</span>
+      <select id="tfSelect">
+        <option value="5m">5m</option>
+        <option value="15m">15m</option>
+        <option value="1h" selected>1H</option>
+        <option value="4h">4H</option>
+        <option value="1d">1D</option>
+        <option value="1w">1W</option>
+      </select>
+      <div class="tf-pills">
+        <button class="tf-pill" data-ticker="BTC">BTC</button>
+        <button class="tf-pill" data-ticker="ETH">ETH</button>
+        <button class="tf-pill" data-ticker="SOL">SOL</button>
+        <button class="tf-pill" data-ticker="BNB">BNB</button>
+        <button class="tf-pill" data-ticker="DOGE">DOGE</button>
+      </div>
+      <button id="analysisBtn">ANALYSE</button>
+      <span id="statusMsg"></span>
+      <div class="cmd-sep"></div>
+      <span class="cmd-label">AUTO</span>
+      <button id="autoRefreshBtn">OFF</button>
+      <select id="refreshIntervalSel">
+        <option value="30">30s</option>
+        <option value="60" selected>1m</option>
+        <option value="120">2m</option>
+        <option value="300">5m</option>
+      </select>
+    </div>
+
+    <!-- Price hero bar -->
+    <div id="price-hero">
+      <div class="ph-main">
+        <div class="ph-ticker" id="h-ticker">—</div>
+        <div class="ph-price" id="h-price">—</div>
+        <div class="ph-change" id="h-change">—</div>
+      </div>
+      <div class="ph-stats">
+        <div class="ph-stat">
+          <div class="ph-stat-label">24H HIGH</div>
+          <div class="ph-stat-val up" id="h-high">—</div>
+        </div>
+        <div class="ph-stat">
+          <div class="ph-stat-label">24H LOW</div>
+          <div class="ph-stat-val down" id="h-low">—</div>
+        </div>
+        <div class="ph-stat">
+          <div class="ph-stat-label">24H VOL</div>
+          <div class="ph-stat-val" id="h-vol">—</div>
+        </div>
+        <div class="ph-stat">
+          <div class="ph-stat-label">MKT CAP</div>
+          <div class="ph-stat-val" id="h-mcap">—</div>
+        </div>
+        <div class="ph-stat">
+          <div class="ph-stat-label">SUPERTREND</div>
+          <div class="ph-stat-val" id="h-st">—</div>
+        </div>
+        <div class="ph-stat">
+          <div class="ph-stat-label">EFF. RATIO</div>
+          <div class="ph-stat-val" id="h-er">—</div>
+        </div>
+        <div class="ph-stat">
+          <div class="ph-stat-label">TREND QI</div>
+          <div class="ph-stat-val" id="h-tqi">—</div>
+        </div>
+        <div class="ph-stat">
+          <div class="ph-stat-label">RSI (14)</div>
+          <div class="ph-stat-val" id="h-rsi">—</div>
+        </div>
+      </div>
+      <div class="ph-bias">
+        <div class="ph-bias-label">OVERALL BIAS</div>
+        <div class="ph-bias-val neutral" id="h-bias">—</div>
+        <div class="ph-bias-conf" id="h-bias-conf">Run analysis first</div>
+      </div>
+    </div>
+
+    <!-- Mobile panel tabs (hidden on desktop) -->
+    <div id="mobile-panel-tabs">
+      <button class="mpt-btn active" data-panel="struct">Chart</button>
+      <button class="mpt-btn" data-panel="deriv">Derivatives</button>
+      <button class="mpt-btn" data-panel="trade">Trade Ideas</button>
+    </div>
+
+    <!-- 3-col analysis grid -->
+    <div id="analysis-grid">
+
+      <!-- LEFT: Derivatives Panel -->
+      <div class="a-panel" id="panel-deriv">
+        <div class="panel-hd">
+          <span class="panel-hd-label">DERIVATIVES INTEL</span>
+          <button class="panel-help-btn" data-popover="pop-deriv" title="Help">?</button>
+        </div>
+        <div id="pop-deriv" class="panel-popover">
+          <div class="po-row"><div class="po-key">Funding Rate</div><div class="po-val">Fee paid between longs/shorts every 8h. Positive = longs pay (bearish pressure). Negative = shorts pay (bullish pressure).</div></div>
+          <div class="po-row"><div class="po-key">Open Interest</div><div class="po-val">Total value of open futures contracts. Rising OI = new money entering. Falling OI = positions closing.</div></div>
+          <div class="po-row"><div class="po-key">L/S Ratio</div><div class="po-val">Long vs Short accounts ratio. >1.3 = crowded long. <0.8 = crowded short. Extremes = squeeze risk.</div></div>
+          <div class="po-row"><div class="po-key">OI Sparkline</div><div class="po-val">24-bar OI history. Rising bars = increasing leverage. Falling bars = deleveraging.</div></div>
+        </div>
+
+        <!-- Funding -->
+        <div class="deriv-section">
+          <div class="deriv-sec-title">FUNDING RATE</div>
+          <div class="deriv-row"><span class="deriv-key">CURRENT RATE</span><span class="deriv-val" id="d-funding">—</span></div>
+          <div class="deriv-row"><span class="deriv-key">NEXT FUNDING</span><span class="deriv-val" id="d-funding-t">—</span></div>
+        </div>
+
+        <!-- Open Interest -->
+        <div class="deriv-section">
+          <div class="deriv-sec-title">OPEN INTEREST</div>
+          <div class="deriv-row"><span class="deriv-key">OI VALUE</span><span class="deriv-val" id="d-oi">—</span></div>
+          <div class="deriv-row"><span class="deriv-key">24H CHANGE</span><span class="deriv-val" id="d-oi-chg">—</span></div>
+          <div class="oi-bar-wrap">
+            <div class="oi-bar-labels"><span>BEAR PRESSURE</span><span>BULL PRESSURE</span></div>
+            <div class="oi-bar-track"><div class="oi-bar-fill" id="d-oi-bar" style="width:50%"></div></div>
+          </div>
+          <!-- OI Sparkline -->
+          <div class="oi-spark-wrap">
+            <div style="font-size:8px;color:var(--muted);letter-spacing:0.1em;margin-bottom:4px;text-transform:uppercase">OI HISTORY (24H)</div>
+            <div class="oi-spark-bars" id="oi-spark"></div>
+          </div>
+        </div>
+
+        <!-- Long / Short -->
+        <div class="deriv-section">
+          <div class="deriv-sec-title">LONG / SHORT RATIO</div>
+          <div class="deriv-row"><span class="deriv-key">GLOBAL L/S</span><span class="deriv-val" id="d-ls">—</span></div>
+          <div class="ls-bar-wrap">
+            <div class="ls-bar-track"><div class="ls-long-fill" id="d-ls-bar" style="width:50%"></div></div>
+            <div class="ls-labels">
+              <span class="ls-long-lbl" id="d-ls-long-pct">LONG —</span>
+              <span class="ls-short-lbl" id="d-ls-short-pct">SHORT —</span>
+            </div>
+          </div>
+          <div class="deriv-row"><span class="deriv-key">TOP TRADERS L/S</span><span class="deriv-val" id="d-ls-top">—</span></div>
+        </div>
+
+        <!-- Liquidations -->
+        <div class="deriv-section">
+          <div class="deriv-sec-title">EST. LIQ. CLUSTERS</div>
+          <div class="liq-mini" id="liq-container">
+            <div class="empty-state" style="height:50px;font-size:8px">RUN ANALYSIS FIRST</div>
+          </div>
+        </div>
+
+        <!-- Cross-Exchange -->
+        <div class="deriv-section">
+          <div class="deriv-sec-title">CROSS-EXCHANGE</div>
+          <div class="deriv-row"><span class="deriv-key">BYBIT PRICE</span><span class="deriv-val" id="d-bybit-price">—</span></div>
+          <div class="deriv-row"><span class="deriv-key">BYBIT VOL</span><span class="deriv-val" id="d-bybit-vol">—</span></div>
+          <div class="deriv-row"><span class="deriv-key">PRICE SPREAD</span><span class="deriv-val" id="d-spread">—</span></div>
+        </div>
+
+        <!-- On-Chain / Gecko -->
+        <div class="deriv-section">
+          <div class="deriv-sec-title">MARKET METRICS</div>
+          <div class="deriv-row"><span class="deriv-key">CMC RANK</span><span class="deriv-val" id="d-rank">—</span></div>
+          <div class="deriv-row"><span class="deriv-key">FULLY DIL. VAL.</span><span class="deriv-val" id="d-fdv">—</span></div>
+          <div class="deriv-row"><span class="deriv-key">SENTIMENT</span><span class="deriv-val" id="d-sentiment">—</span></div>
+          <div class="deriv-row"><span class="deriv-key">ATH DISTANCE</span><span class="deriv-val" id="d-ath">—</span></div>
+        </div>
+      </div><!-- /panel-deriv -->
+
+      <!-- CENTRE: Structure Panel -->
+      <div class="a-panel" id="panel-struct">
+        <div class="panel-hd">
+          <span class="panel-hd-label" id="struct-tf-label">MARKET STRUCTURE</span>
+          <button class="panel-help-btn" data-popover="pop-struct" title="Help">?</button>
+        </div>
+        <div id="pop-struct" class="panel-popover">
+          <div class="po-row"><div class="po-key">Trend (ST)</div><div class="po-val">SuperTrend — a direction indicator. Green BULLISH means price is above the trend line and rising. Red BEARISH means price is below and falling. Think of it as the market's current mood.</div></div>
+          <div class="po-row"><div class="po-key">BOS / CHoCH</div><div class="po-val">Break of Structure / Change of Character. A BOS means the market continued its trend (a high/low was broken). A CHoCH means the trend may be flipping — a warning that direction could reverse.</div></div>
+          <div class="po-row"><div class="po-key">Swing High / Low</div><div class="po-val">The most recent significant peak (swing high) and trough (swing low) in price. These act as natural targets and stop-loss reference points.</div></div>
+          <div class="po-row"><div class="po-key">Premium Zone</div><div class="po-val">The top 25% of the current price range. Price here is expensive — better to look for shorts or wait for a pullback before buying.</div></div>
+          <div class="po-row"><div class="po-key">Discount Zone</div><div class="po-val">The bottom 25% of the current price range. Price here is cheap — better zone to look for longs / buying opportunities.</div></div>
+          <div class="po-row"><div class="po-key">Fair Value Gaps</div><div class="po-val">Price gaps where the market moved so fast that no real trading happened. Price tends to revisit these zones to "fill" them — useful as entry targets.</div></div>
+          <div class="po-row"><div class="po-key">Multi-TF Scan</div><div class="po-val">The same coin analysed across different timeframes (5m, 1h, 4h etc.). When multiple timeframes agree on a direction, the signal is much stronger.</div></div>
+        </div>
+
+        <!-- Candlestick chart -->
+        <div id="canvasWrap">
+          <canvas id="priceCanvas"></canvas>
+        </div>
+
+        <!-- Structure summary grid -->
+        <div class="struct-grid">
+          <div class="struct-cell">
+            <div class="struct-cell-label">SUPERTREND</div>
+            <div class="struct-cell-value" id="s-trend">—</div>
+            <div class="struct-cell-sub" id="s-trend-sub">—</div>
+          </div>
+          <div class="struct-cell">
+            <div class="struct-cell-label">BOS / CHoCH</div>
+            <div class="struct-cell-value" id="s-struct"><span class="tag neutral">NONE</span></div>
+            <div class="struct-cell-sub" id="s-struct-sub">—</div>
+          </div>
+          <div class="struct-cell">
+            <div class="struct-cell-label">LAST SWING HIGH</div>
+            <div class="struct-cell-value" id="s-sh">—</div>
+            <div class="struct-cell-sub" id="s-sh-sub">—</div>
+          </div>
+          <div class="struct-cell">
+            <div class="struct-cell-label">LAST SWING LOW</div>
+            <div class="struct-cell-value" id="s-sl">—</div>
+            <div class="struct-cell-sub" id="s-sl-sub">—</div>
+          </div>
+          <div class="struct-cell">
+            <div class="struct-cell-label">PREMIUM ZONE</div>
+            <div class="struct-cell-value" id="s-prem">—</div>
+          </div>
+          <div class="struct-cell">
+            <div class="struct-cell-label">DISCOUNT ZONE</div>
+            <div class="struct-cell-value" id="s-disc">—</div>
+          </div>
+        </div>
+
+        <!-- Order Blocks -->
+        <div class="panel-hd" style="background:var(--bg3);border-bottom:1px solid var(--border)">
+          <span class="panel-hd-label">ORDER BLOCKS</span>
+          <span class="panel-hd-sub">NEAREST ±3 DETECTED</span>
+        </div>
+        <div id="ob-container">
+          <div class="empty-state" style="height:50px;font-size:8px">RUN ANALYSIS FIRST</div>
+        </div>
+
+        <!-- FVG list -->
+        <div class="panel-hd" style="background:var(--bg3);border-bottom:1px solid var(--border)">
+          <span class="panel-hd-label">FAIR VALUE GAPS</span>
+          <span class="panel-hd-sub" id="fvg-count">—</span>
+        </div>
+        <div class="fvg-list" id="fvg-list">
+          <div class="empty-state" style="height:36px;font-size:8px">RUN ANALYSIS FIRST</div>
+        </div>
+
+        <!-- Multi-TF table -->
+        <div class="panel-hd" style="background:var(--bg3);border-bottom:1px solid var(--border)">
+          <span class="panel-hd-label">MULTI-TIMEFRAME BIAS</span>
+          <button class="panel-help-btn" data-popover="pop-mtf" title="Help">?</button>
+        </div>
+        <div id="pop-mtf" class="panel-popover">
+          <div class="po-row"><div class="po-key">Alignment</div><div class="po-val">When 3+ timeframes show the same direction, the probability of that move is significantly higher. Conflicting timeframes = chop risk.</div></div>
+          <div class="po-row"><div class="po-key">Key Level</div><div class="po-val">Nearest significant swing high or low for that timeframe. Dist% = how far current price is from that level.</div></div>
+        </div>
+        <div id="mtf-table">
+          <table class="mtf-table">
+            <thead><tr>
+              <th>TF</th><th>TREND</th><th>STRUCTURE</th><th>KEY LEVEL</th><th>DIST%</th>
+            </tr></thead>
+            <tbody id="mtf-tbody">
+              <tr><td colspan="5"><span style="color:var(--muted);font-size:9px">Run analysis to populate</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- S/R levels -->
+        <div class="panel-hd" style="background:var(--bg3);border-bottom:1px solid var(--border)">
+          <span class="panel-hd-label">KEY S/R LEVELS</span>
+          <span class="panel-hd-sub">NEAREST 10</span>
+        </div>
+        <div class="levels-row" id="sr-levels">
+          <div class="empty-state" style="height:40px;font-size:8px">RUN ANALYSIS FIRST</div>
+        </div>
+
+      </div><!-- /panel-struct -->
+
+      <!-- RIGHT: Trade Ideas Panel -->
+      <div class="a-panel" id="panel-trade">
+        <div class="panel-hd">
+          <span class="panel-hd-label">TRADE SCENARIOS</span>
+          <button class="panel-help-btn" data-popover="pop-trade" title="Help">?</button>
+        </div>
+        <div id="pop-trade" class="panel-popover">
+          <div class="po-row"><div class="po-key">Primary Trade</div><div class="po-val">The highest probability direction based on all signals. Entry, SL, TP1 (conservative), TP2 (extended target).</div></div>
+          <div class="po-row"><div class="po-key">Counter Trade</div><div class="po-val">Opposite direction — low conviction. Valid only if clear reversal signals appear. Lower probability.</div></div>
+          <div class="po-row"><div class="po-key">Conviction Score</div><div class="po-val">Structure 40% · Location 25% · Momentum 30% · Derivatives 5%. >75% = High. 55-75% = Medium. Below = Low.</div></div>
+          <div class="po-row"><div class="po-key">Entry Status</div><div class="po-val">TRADE RUNNING = entry hit, ride toward TP2. ACT NOW = price at entry zone. WAIT = price hasn't reached entry yet.</div></div>
+          <div class="po-row"><div class="po-key">SMC Checklist</div><div class="po-val">7 confluence factors. More green ticks = stronger setup. Fewer than 3 ticks = be cautious about entering.</div></div>
+        </div>
+
+        <div id="scenarios-wrap">
+          <div class="empty-state">
+            <div class="empty-glyph">◎</div>
+            ENTER A TICKER AND RUN ANALYSIS<br>
+            <span style="font-size:8px;color:var(--muted);margin-top:4px;display:block">Trade ideas, entry zones, and SMC confluence will appear here</span>
+          </div>
+        </div>
+
+      </div><!-- /panel-trade -->
+
+    </div><!-- /analysis-grid -->
+  </div><!-- /stage-analysis -->
+
+  <!-- ─── SMC CONFLUENCE SCANNER STAGE ─── -->
+  <div id="stage-smc-scanner">
+
+    <!-- Scanner command bar -->
+    <div id="smc-cmd">
+      <span class="cmd-label">SMC CONFLUENCE SCANNER</span>
+      <div class="header-divider"></div>
+      <span class="cmd-label">TF</span>
+      <select id="smcTfSelect">
+        <option value="5m">5m</option>
+        <option value="15m">15m</option>
+        <option value="1h" selected>1H</option>
+        <option value="4h">4H</option>
+        <option value="1d">1D</option>
+        <option value="1w">1W</option>
+      </select>
+      <span class="cmd-label">MIN CHECKS</span>
+      <select id="smcMinChecks">
+        <option value="4" selected>4 / 7</option>
+        <option value="5">5 / 7</option>
+        <option value="6">6 / 7</option>
+        <option value="7">7 / 7</option>
+      </select>
+      <button id="smcScanBtn">SCAN MARKET</button>
+      <button id="smcStopBtn" style="display:none;background:rgba(255,68,68,0.15);border-color:rgba(255,68,68,0.4);color:var(--red)">■ STOP</button>
+      <label class="btc-toggle-wrap" title="Also check BTC pair — confirms coin is gaining in BTC terms, not just riding a BTC pump">
+        <input type="checkbox" id="smcBtcConfirm">
+        <span class="btc-toggle-label">₿ BTC CONFIRM</span>
+      </label>
+      <span id="smcStatusMsg" style="font-size:9px;color:var(--muted);letter-spacing:0.06em"></span>
+      <button id="smcHelpBtn" class="smc-help-btn" title="How this scanner works">?</button>
+    </div>
+
+    <!-- Scanner stats bar -->
+    <div id="smc-stats-bar">
+      <div class="smc-stat-pill">
+        <span class="smc-stat-label">EXCHANGE COINS</span>
+        <span class="smc-stat-val" id="smc-total-coins">—</span>
+      </div>
+      <div class="smc-stat-pill">
+        <span class="smc-stat-label">SCANNED</span>
+        <span class="smc-stat-val" id="smc-scanned">0</span>
+      </div>
+      <div class="smc-stat-pill">
+        <span class="smc-stat-label">QUALIFIED</span>
+        <span class="smc-stat-val qualified" id="smc-qualified">0</span>
+      </div>
+      <div class="smc-stat-pill">
+        <span class="smc-stat-label">IGNORED</span>
+        <span class="smc-stat-val ignored" id="smc-ignored">0</span>
+      </div>
+      <div class="smc-progress-wrap">
+        <div class="smc-progress-bar" id="smc-progress-bar" style="width:0%"></div>
+      </div>
+    </div>
+
+    <!-- Results table -->
+    <div id="smc-results-wrap">
+      <div class="smc-empty-state" id="smc-empty">
+        <div class="empty-glyph">◈</div>
+        SELECT TIMEFRAME AND HIT SCAN MARKET<br>
+        <span style="font-size:8px;color:var(--muted);margin-top:4px;display:block">All Binance USDT perpetual futures will be scanned for SMC confluence</span>
+      </div>
+      <table class="smc-table" id="smc-table" style="display:none">
+        <thead>
+          <tr>
+            <th>COIN</th>
+            <th>PRICE</th>
+            <th title="SuperTrend">ST</th>
+            <th title="Price Zone (Premium/Discount)">ZONE</th>
+            <th title="BOS or CHoCH">BOS</th>
+            <th title="RSI Aligned">RSI</th>
+            <th title="TQI > 0.5">TQI</th>
+            <th title="Funding Edge">FUND</th>
+            <th title="L/S Position">L/S</th>
+            <th title="BTC Pair Confirmation (optional)" id="smc-btc-th" style="display:none">₿</th>
+            <th>SCORE</th>
+            <th>BIAS</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="smc-tbody"></tbody>
+      </table>
+    </div>
+
+  </div><!-- /stage-smc-scanner -->
+
+  <!-- ─── MIT SCAN STAGE ─── -->
+  <div id="stage-mit-scan">
+
+    <!-- Command bar -->
+    <div id="mit-cmd">
+      <div class="mit-brand">
+        <span class="mit-logo-text">MIT<span class="mit-logo-accent">SCAN</span></span>
+        <span class="mit-logo-sub">MARKET INTELLIGENCE TERMINAL</span>
+      </div>
+      <div class="header-divider"></div>
+      <div class="mit-phase-trail">
+        <span class="mit-phase-pill active" id="mphase-1">① SURGE</span>
+        <span class="mit-phase-arrow">→</span>
+        <span class="mit-phase-pill" id="mphase-2">② STRUCTURE</span>
+        <span class="mit-phase-arrow">→</span>
+        <span class="mit-phase-pill" id="mphase-3">③ CONFLUENCE</span>
+        <span class="mit-phase-arrow">→</span>
+        <span class="mit-phase-pill" id="mphase-4">④ SIGNAL</span>
+      </div>
+      <div class="header-divider"></div>
+      <span class="mit-cmd-label">TIMEFRAME</span>
+      <select id="mitTfSelect">
+        <option value="5m">5m</option>
+        <option value="15m">15m</option>
+        <option value="1h" selected>1H</option>
+        <option value="4h">4H</option>
+        <option value="1d">1D</option>
+        <option value="1w">1W</option>
+      </select>
+      <div class="header-divider"></div>
+      <button id="mitScanBtn">⚡ RUN MIT SCAN</button>
+      <button id="mitStopBtn" style="display:none">■ STOP</button>
+      <label class="btc-toggle-wrap" title="Also check BTC pair — confirms coin is gaining in BTC terms, not just riding a BTC pump">
+        <input type="checkbox" id="mitBtcConfirm">
+        <span class="btc-toggle-label">₿ BTC CONFIRM</span>
+      </label>
+      <span id="mitStatusMsg"></span>
+    </div>
+
+    <!-- Phase progress bar -->
+    <div id="mit-phase-bar">
+      <div class="mit-phase-block" id="mitpb-1">
+        <span class="mpb-label">PHASE 1 · SURGE FILTER</span>
+        <span class="mpb-val" id="mitpb-1-val">—</span>
+      </div>
+      <div class="mit-phase-block" id="mitpb-2">
+        <span class="mpb-label">PHASE 2 · SMC STRUCTURE</span>
+        <span class="mpb-val" id="mitpb-2-val">—</span>
+      </div>
+      <div class="mit-phase-block" id="mitpb-3">
+        <span class="mpb-label">PHASE 3 · CONFLUENCE</span>
+        <span class="mpb-val" id="mitpb-3-val">—</span>
+      </div>
+      <div class="mit-phase-block" id="mitpb-4">
+        <span class="mpb-label">PHASE 4 · SIGNALS</span>
+        <span class="mpb-val" id="mitpb-4-val">—</span>
+      </div>
+      <div class="mit-progress-wrap">
+        <div class="mit-progress-fill" id="mit-progress-fill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <!-- Results area -->
+    <div id="mit-results-wrap">
+
+      <!-- Empty state -->
+      <div class="mit-empty" id="mit-empty">
+        <div class="mit-empty-glyph">⚡</div>
+        <div class="mit-empty-title">MIT SCAN READY</div>
+        <div class="mit-empty-sub">4-phase institutional funnel · 500+ coins → High Conviction Signals<br>Hit RUN MIT SCAN to start the engine</div>
+      </div>
+
+      <!-- Bubble canvas -->
+      <div id="mit-bubble-wrap" style="display:none">
+        <svg id="mit-bubble-svg"></svg>
+        <!-- Tooltip -->
+        <div id="mit-tooltip">
+          <div class="mit-tt-head">
+            <span class="mit-tt-symbol"></span>
+            <span class="mit-tt-dir"></span>
+          </div>
+          <div class="mit-tt-conviction"></div>
+          <div class="mit-tt-setup"></div>
+          <div class="mit-tt-reasons"></div>
+          <div class="mit-tt-footer">Click to open full analysis →</div>
+        </div>
+      </div>
+
+      <!-- No results -->
+      <div id="mit-no-results" style="display:none" class="mit-empty">
+        <div class="mit-empty-glyph" style="color:var(--muted)">◌</div>
+        <div class="mit-empty-title" style="color:var(--muted)">NO HIGH CONVICTION SETUPS FOUND</div>
+        <div class="mit-empty-sub">No coins passed all 3 phases this scan cycle.<br>Market may be in consolidation — try again at session open.</div>
+      </div>
+
+    </div>
+
+  </div><!-- /stage-mit-scan -->
+
+  <!-- ─── BTC PAIR SCANNER STAGE ─── -->
+  <div id="stage-btc-scan">
+
+    <div id="btc-cmd">
+      <div class="mit-brand">
+        <span class="mit-logo-text">BTC<span class="mit-logo-accent" style="color:var(--gold)">SCAN</span></span>
+        <span class="mit-logo-sub">BTC PAIR RELATIVE STRENGTH SCANNER</span>
+      </div>
+      <div class="header-divider"></div>
+      <span class="mit-cmd-label">TIMEFRAME</span>
+      <select id="btcTfSelect">
+        <option value="5m">5m</option>
+        <option value="15m">15m</option>
+        <option value="1h" selected>1H</option>
+        <option value="4h">4H</option>
+        <option value="1d">1D</option>
+        <option value="1w">1W</option>
+      </select>
+      <div class="header-divider"></div>
+      <button id="btcScanBtn">₿ SCAN BTC PAIRS</button>
+      <button id="btcStopBtn" style="display:none">■ STOP</button>
+      <span id="btcStatusMsg"></span>
+    </div>
+
+    <!-- Stats bar -->
+    <div id="btc-stats-bar">
+      <div class="smc-stat-pill">
+        <span class="smc-stat-label">BTC PAIRS FOUND</span>
+        <span class="smc-stat-val" id="btc-total">—</span>
+      </div>
+      <div class="smc-stat-pill">
+        <span class="smc-stat-label">SCANNED</span>
+        <span class="smc-stat-val" id="btc-scanned">0</span>
+      </div>
+      <div class="smc-stat-pill">
+        <span class="smc-stat-label">QUALIFIED</span>
+        <span class="smc-stat-val qualified" id="btc-qualified">0</span>
+      </div>
+      <div class="smc-stat-pill">
+        <span class="smc-stat-label">IGNORED</span>
+        <span class="smc-stat-val ignored" id="btc-ignored">0</span>
+      </div>
+      <div class="smc-progress-wrap">
+        <div class="smc-progress-bar" id="btc-progress-bar" style="width:0%"></div>
+      </div>
+    </div>
+
+    <!-- Bubble canvas -->
+    <div id="btc-results-wrap">
+      <div class="mit-empty" id="btc-empty">
+        <div class="mit-empty-glyph" style="color:var(--gold)">₿</div>
+        <div class="mit-empty-title">BTC PAIR SCANNER READY</div>
+        <div class="mit-empty-sub">Scans all coin/BTC spot pairs on Binance for SMC structure<br>Price rising in BTC terms = genuine outperformance, not just a BTC pump ride</div>
+      </div>
+      <div id="btc-bubble-wrap" style="display:none">
+        <svg id="btc-bubble-svg"></svg>
+        <div id="btc-tooltip">
+          <div class="mit-tt-head">
+            <span class="mit-tt-symbol"></span>
+            <span class="mit-tt-dir"></span>
+          </div>
+          <div class="mit-tt-conviction"></div>
+          <div class="mit-tt-setup"></div>
+          <div class="mit-tt-reasons"></div>
+          <div class="mit-tt-footer">Click to open USDT analysis →</div>
+        </div>
+      </div>
+      <div id="btc-no-results" style="display:none" class="mit-empty">
+        <div class="mit-empty-glyph" style="color:var(--muted)">◌</div>
+        <div class="mit-empty-title" style="color:var(--muted)">NO QUALIFIED BTC PAIRS FOUND</div>
+        <div class="mit-empty-sub">No coins showing SMC structure on their BTC pair this cycle.</div>
+      </div>
+    </div>
+
+  </div><!-- /stage-btc-scan -->
+
+</div><!-- /stage -->
+
+<!-- Loading overlay -->
+<div id="loading-overlay">
+  <div class="loading-ring"></div>
+  <div class="loading-text">FETCHING DATA</div>
+  <div class="loading-sub" id="loading-sub-text">INITIALISING...</div>
+</div>
+
+<!-- ══ GLOBAL HELP MODAL ══ -->
+<div id="help-modal-overlay">
+  <div id="help-modal">
+    <div class="hm-header">
+      <span class="hm-title">? Help &amp; Glossary</span>
+      <button class="hm-close" id="hm-close-btn">✕</button>
+    </div>
+    <div class="hm-tabs">
+      <button class="hm-tab active" data-hmtab="basics">Basics</button>
+      <button class="hm-tab" data-hmtab="signals">Signals</button>
+      <button class="hm-tab" data-hmtab="numbers">Numbers</button>
+      <button class="hm-tab" data-hmtab="howto">How to Use</button>
+    </div>
+    <div class="hm-body" id="hm-body"></div>
+  </div>
+</div>
+
+<!-- ══ SMC CONFLUENCE SCANNER HELP MODAL ══ -->
+<div id="smc-help-overlay">
+  <div id="smc-help-modal">
+
+    <div class="hm-header">
+      <span class="hm-title">◈ SMC Confluence Scanner — Guide</span>
+      <button class="hm-close" id="smc-hm-close">✕</button>
+    </div>
+
+    <div class="hm-tabs" id="smc-hm-tabs">
+      <button class="hm-tab active" data-smctab="what">What Is This</button>
+      <button class="hm-tab" data-smctab="howto">How To Use</button>
+      <button class="hm-tab" data-smctab="checks">The 7 Checks</button>
+      <button class="hm-tab" data-smctab="results">Reading Results</button>
+    </div>
+
+    <div class="hm-body" id="smc-hm-body"></div>
+
+  </div>
+</div>
+
+<!-- ══ SCRIPTS — order matters ══ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="config.js"></script>
+<script src="math.js"></script>
+<script src="fetchers.js"></script>
+<script src="chart.js"></script>
+<script src="analysis.js"></script>
+<script src="ui.js"></script>
+<script src="scanner.js"></script>
+<script src="mitscan.js"></script>
+<script src="btcscan.js"></script>
+
+<script>
+// ── MOBILE BOTTOM RAIL ────────────────────────────────────────
+(function() {
+  const isMobile = () => window.innerWidth < 768;
+
+  function showBottomRail() {
+    document.getElementById('mobile-bottom-rail').style.display =
+      isMobile() ? 'flex' : 'none';
+  }
+  showBottomRail();
+  window.addEventListener('resize', showBottomRail);
+
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('mbr-analysis').addEventListener('click', () => {
+      switchToStage('stage-analysis', 'rail-analysis');
+      document.getElementById('tickerInput').focus();
+    });
+
+    document.getElementById('mbr-smc').addEventListener('click', () => {
+      switchToStage('stage-smc-scanner', 'rail-smc-scanner');
+    });
+
+    document.getElementById('mbr-mit').addEventListener('click', () => {
+      switchToStage('stage-mit-scan', 'rail-mit-scan');
+    });
+
+    document.getElementById('mbr-btc').addEventListener('click', () => {
+      switchToStage('stage-btc-scan', 'rail-btc-scan');
+    });
+
+    document.getElementById('mbr-help').addEventListener('click', () => {
+      document.getElementById('rail-help')?.click();
+    });
+
+    // Hide AUTO label and its controls on mobile via JS (CSS selector limitation)
+    if (isMobile()) {
+      const autoLabel = [...document.querySelectorAll('.cmd-label')]
+        .find(el => el.textContent.trim() === 'AUTO');
+      if (autoLabel) autoLabel.style.display = 'none';
+    }
+  });
+})();
+</script>
+
+</body>
+</html>
